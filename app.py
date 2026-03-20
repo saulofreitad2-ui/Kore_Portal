@@ -926,11 +926,11 @@ def render_admin_dashboard():
 
     # ── REPRESENTANTES ───────────────────────────────────────────
     with tab5:
-        section_header("👥 Representantes", f"{len(users) - 1} usuários cadastrados")
+        section_header("👥 Gestão de Usuários", f"{len(users) - 1} usuário(s) cadastrado(s)")
 
-        # Upload de nova planilha
+        # ── Upload planilha ──────────────────────────────────────
         with st.expander("📁 Atualizar dados — Upload de Planilha Excel"):
-            st.markdown("Suba a planilha `BASE_APP_2.xlsx` (com abas **Estoque** e **Pedidos**) para atualizar os dados.")
+            st.markdown("Suba a planilha `.xlsx` com abas **Estoque** e **Pedidos** para atualizar os dados.")
             uploaded = st.file_uploader("Escolha o arquivo .xlsx", type=["xlsx","xls"])
             if uploaded:
                 with st.spinner("Processando planilha..."):
@@ -943,61 +943,132 @@ def render_admin_dashboard():
                     except Exception as e:
                         st.error(f"Erro ao processar: {e}")
 
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-        # Novo representante
-        with st.expander("➕ Cadastrar novo representante"):
-            with st.form("new_user_form"):
-                c1,c2,c3 = st.columns(3)
+        # ── Formulário novo usuário ──────────────────────────────
+        with st.expander("➕ Cadastrar novo usuário"):
+            with st.form("new_user_form", clear_on_submit=True):
+                st.markdown("#### Novo usuário")
+                c1, c2 = st.columns(2)
                 with c1:
-                    nome     = st.text_input("Nome *")
-                    vendedor = st.text_input("Vendedor (exato na planilha) *")
+                    nome     = st.text_input("Nome completo *")
+                    vendedor = st.text_input("Vendedor (igual à planilha) *",
+                                             help="Deve ser idêntico ao nome na coluna Vendedor da planilha de pedidos")
+                    segmento = st.text_input("Segmento", placeholder="Ex: DEFIR")
                 with c2:
-                    segmento = st.text_input("Segmento")
-                    login    = st.text_input("Login *")
-                with c3:
+                    login    = st.text_input("Login *", placeholder="Ex: joao.silva")
                     password = st.text_input("Senha *", type="password")
-                    role     = st.selectbox("Perfil", ["rep", "admin"])
-
-                salvar = st.form_submit_button("Salvar ✓", use_container_width=True)
+                    role     = st.selectbox("Perfil", ["rep", "admin"],
+                                            format_func=lambda x: "👤 Representante" if x == "rep" else "🔑 Administrador")
+                salvar = st.form_submit_button("✅ Salvar usuário", use_container_width=True)
                 if salvar:
                     if not all([nome, vendedor, login, password]):
-                        st.error("Preencha todos os campos obrigatórios.")
+                        st.error("⚠️ Preencha todos os campos obrigatórios (*)")
                     elif any(u["login"] == login for u in st.session_state.users):
-                        st.error("Login já existe.")
+                        st.error("⚠️ Esse login já existe. Escolha outro.")
                     else:
                         st.session_state.users.append({
-                            "id": max(u["id"] for u in st.session_state.users) + 1,
-                            "name": nome, "vendedor": vendedor, "segmento": segmento,
-                            "login": login, "password": password, "role": role,
+                            "id":       max(u["id"] for u in st.session_state.users) + 1,
+                            "name":     nome,
+                            "vendedor": vendedor,
+                            "segmento": segmento,
+                            "login":    login,
+                            "password": password,
+                            "role":     role,
                         })
-                        st.success(f"Representante '{nome}' cadastrado!")
+                        st.success(f"✅ Usuário **{nome}** cadastrado com sucesso!")
                         st.rerun()
 
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-        # Lista de usuários
-        for u in [x for x in st.session_state.users if x["id"] != 1]:
-            col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 1.2, 1.2])
-            role_color = "#F47920" if u["role"] == "admin" else "#8DC63F"
-            col1.markdown(f"<span style='font-weight:700'>{u['name'][:30]}</span>", unsafe_allow_html=True)
-            col2.markdown(f"<span style='color:rgba(255,255,255,0.5);font-size:12px'>{u['login']}</span>", unsafe_allow_html=True)
-            col3.markdown(f"<span style='background:{role_color}22;color:{role_color};border:1px solid {role_color}55;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;text-transform:uppercase'>{u['role']}</span>", unsafe_allow_html=True)
+        # ── Edição inline de senha ───────────────────────────────
+        if "editing_pwd" not in st.session_state:
+            st.session_state.editing_pwd = None
 
-            with col4:
-                label = "↓ Rep" if u["role"] == "admin" else "↑ Admin"
-                if st.button(label, key=f"toggle_{u['id']}"):
+        # ── Lista de usuários ────────────────────────────────────
+        outros = [u for u in st.session_state.users if u["id"] != 1]
+
+        # Header da lista
+        st.markdown(f"""
+        <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr auto auto auto;
+            gap:8px;padding:8px 14px;
+            background:#163e50;border-radius:10px 10px 0 0;
+            border:1px solid rgba(255,255,255,0.1);
+            font-size:10px;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.08em;color:rgba(255,255,255,0.55);margin-bottom:0">
+            <span>Nome</span><span>Login</span><span>Vendedor</span>
+            <span>Perfil</span><span style="text-align:center">Senha</span>
+            <span style="text-align:center">Perfil</span>
+            <span style="text-align:center">Remover</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        for u in outros:
+            role_color = "#F47920" if u["role"] == "admin" else "#8DC63F"
+            role_label = "🔑 Admin" if u["role"] == "admin" else "👤 Rep"
+            toggle_label = "↓ Rep" if u["role"] == "admin" else "↑ Admin"
+
+            c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 1.5, 1, 1, 0.8, 0.8, 0.8])
+
+            c1.markdown(f"<div style='font-weight:700;font-size:13px;padding-top:6px'>{u['name'][:30]}</div>",
+                        unsafe_allow_html=True)
+            c2.markdown(f"<div style='color:#4db8d4;font-size:12px;padding-top:6px'>{u['login']}</div>",
+                        unsafe_allow_html=True)
+            c3.markdown(f"<div style='color:rgba(255,255,255,0.5);font-size:11px;padding-top:6px'>{u['vendedor'][:18]}</div>",
+                        unsafe_allow_html=True)
+            c4.markdown(
+                f"<span style='background:{role_color}22;color:{role_color};"
+                f"border:1px solid {role_color}55;border-radius:20px;"
+                f"padding:3px 10px;font-size:11px;font-weight:700'>{role_label}</span>",
+                unsafe_allow_html=True,
+            )
+
+            # Trocar senha
+            with c5:
+                if st.button("🔑", key=f"pwd_{u['id']}", help="Alterar senha"):
+                    st.session_state.editing_pwd = u["id"] if st.session_state.editing_pwd != u["id"] else None
+                    st.rerun()
+
+            # Promover / Rebaixar
+            with c6:
+                if st.button(toggle_label, key=f"role_{u['id']}", help="Alterar perfil"):
                     for usr in st.session_state.users:
                         if usr["id"] == u["id"]:
                             usr["role"] = "rep" if usr["role"] == "admin" else "admin"
                     st.rerun()
 
-            with col5:
-                if st.button("✕ Remover", key=f"del_{u['id']}"):
+            # Remover
+            with c7:
+                if st.button("✕", key=f"del_{u['id']}", help="Remover usuário"):
                     st.session_state.users = [x for x in st.session_state.users if x["id"] != u["id"]]
+                    if st.session_state.editing_pwd == u["id"]:
+                        st.session_state.editing_pwd = None
                     st.rerun()
 
-            st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.05);margin:4px 0'>", unsafe_allow_html=True)
+            # Formulário inline de troca de senha
+            if st.session_state.editing_pwd == u["id"]:
+                with st.form(key=f"form_pwd_{u['id']}"):
+                    st.markdown(f"<div style='color:rgba(255,255,255,0.6);font-size:12px;margin-bottom:4px'>Nova senha para <strong>{u['name']}</strong></div>",
+                                unsafe_allow_html=True)
+                    nova_senha = st.text_input("Nova senha", type="password", key=f"ns_{u['id']}")
+                    conf_senha = st.text_input("Confirmar senha", type="password", key=f"cs_{u['id']}")
+                    if st.form_submit_button("Salvar nova senha"):
+                        if not nova_senha:
+                            st.error("Digite a nova senha.")
+                        elif nova_senha != conf_senha:
+                            st.error("As senhas não coincidem.")
+                        elif len(nova_senha) < 4:
+                            st.error("Senha muito curta (mínimo 4 caracteres).")
+                        else:
+                            for usr in st.session_state.users:
+                                if usr["id"] == u["id"]:
+                                    usr["password"] = nova_senha
+                            st.session_state.editing_pwd = None
+                            st.success("✅ Senha atualizada!")
+                            st.rerun()
+
+            st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.05);margin:4px 0'>",
+                        unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════
