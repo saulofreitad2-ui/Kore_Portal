@@ -23,114 +23,230 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
 
-html, body, [class*="css"] {
+/* ── BASE ─────────────────────────────────────────── */
+html, body, [class*="css"], * {
     font-family: 'Syne', sans-serif !important;
-}
-
-.stApp {
-    background: linear-gradient(155deg, #143f50 0%, #1a5268 100%);
     color: white;
 }
-
-/* Métricas */
-[data-testid="metric-container"] {
-    background: #1e6070;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 18px;
-    padding: 20px !important;
+.stApp {
+    background: linear-gradient(155deg, #143f50 0%, #1a5268 100%) !important;
+    min-height: 100vh;
 }
-[data-testid="metric-container"] label {
+.block-container {
+    padding-top: 1.5rem !important;
+    max-width: 1400px !important;
+}
+footer, #MainMenu, header { visibility: hidden; }
+
+/* ── MÉTRICAS ─────────────────────────────────────── */
+[data-testid="metric-container"] {
+    background: #1e6070 !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
+}
+[data-testid="metric-container"] > div { gap: 4px !important; }
+[data-testid="stMetricLabel"] > div,
+[data-testid="stMetricLabel"] p {
     color: rgba(255,255,255,0.6) !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
+    text-transform: uppercase !important;
+    letter-spacing: 0.09em !important;
 }
-[data-testid="metric-container"] [data-testid="stMetricValue"] {
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] > div {
     color: #F47920 !important;
     font-size: 22px !important;
     font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
 }
-[data-testid="metric-container"] [data-testid="stMetricDelta"] {
+[data-testid="stMetricDelta"] svg { display: none; }
+[data-testid="stMetricDelta"] > div {
     color: rgba(255,255,255,0.5) !important;
+    font-size: 12px !important;
 }
 
-/* Tabs */
+/* ── TABS ─────────────────────────────────────────── */
 [data-baseweb="tab-list"] {
     background: transparent !important;
-    gap: 6px;
+    gap: 6px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    padding-bottom: 4px !important;
 }
 [data-baseweb="tab"] {
-    background: rgba(0,0,0,0.22) !important;
-    border-radius: 10px !important;
-    color: white !important;
-    font-weight: 700 !important;
-    border: none !important;
-    padding: 8px 18px !important;
-}
-[aria-selected="true"] {
-    background: #F47920 !important;
-    box-shadow: 0 4px 16px rgba(244,121,32,0.27) !important;
-}
-[data-baseweb="tab-highlight"] { display: none !important; }
-[data-baseweb="tab-border"]    { display: none !important; }
-
-/* DataFrames */
-[data-testid="stDataFrame"] {
-    border-radius: 14px;
-    overflow: hidden;
-}
-.stDataFrame thead tr th {
-    background: #1e6070 !important;
-    color: rgba(255,255,255,0.6) !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-/* Inputs */
-input, select, textarea {
     background: rgba(0,0,0,0.25) !important;
+    border-radius: 10px !important;
+    color: rgba(255,255,255,0.7) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    padding: 8px 18px !important;
+    margin: 0 !important;
+}
+[data-baseweb="tab"]:hover {
+    background: rgba(244,121,32,0.15) !important;
+    color: white !important;
+}
+[data-baseweb="tab"][aria-selected="true"] {
+    background: #F47920 !important;
+    color: white !important;
+    border-color: #F47920 !important;
+    box-shadow: 0 4px 16px rgba(244,121,32,0.35) !important;
+}
+[data-baseweb="tab-highlight"],
+[data-baseweb="tab-border"] { display: none !important; }
+
+/* ── DATAFRAME ────────────────────────────────────── */
+[data-testid="stDataFrame"] > div {
+    background: #1a5060 !important;
+    border-radius: 14px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
+    overflow: hidden !important;
+}
+[data-testid="stDataFrame"] iframe {
+    border-radius: 12px !important;
+}
+
+/* ── INPUTS ───────────────────────────────────────── */
+[data-testid="stTextInput"] input,
+[data-baseweb="input"] input,
+input[type="text"],
+input[type="password"] {
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
     border-radius: 10px !important;
     color: white !important;
     font-family: 'Syne', sans-serif !important;
+    font-size: 14px !important;
+    padding: 10px 14px !important;
 }
+[data-testid="stTextInput"] input:focus {
+    border-color: rgba(244,121,32,0.6) !important;
+    box-shadow: 0 0 0 2px rgba(244,121,32,0.15) !important;
+}
+[data-testid="stTextInput"] label,
+[data-testid="stTextInput"] p {
+    color: rgba(255,255,255,0.7) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+/* Placeholder */
+[data-testid="stTextInput"] input::placeholder { color: rgba(255,255,255,0.35) !important; }
 
-/* Botões */
+/* ── RADIO ────────────────────────────────────────── */
+[data-testid="stRadio"] label {
+    color: white !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+}
+[data-testid="stRadio"] > div {
+    background: rgba(0,0,0,0.2) !important;
+    border-radius: 10px !important;
+    padding: 6px 12px !important;
+    gap: 16px !important;
+}
+[data-testid="stRadio"] [data-testid="stMarkdown"] p { color: white !important; }
+
+/* ── SELECT / DROPDOWN ────────────────────────────── */
+[data-testid="stSelectbox"] label,
+[data-testid="stSelectbox"] p {
+    color: rgba(255,255,255,0.7) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+[data-baseweb="select"] > div:first-child {
+    background: rgba(0,0,0,0.3) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 10px !important;
+    color: white !important;
+}
+[data-baseweb="select"] span { color: white !important; }
+[data-baseweb="popover"] { background: #1a5060 !important; }
+[data-baseweb="menu"] { background: #1a5060 !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 10px !important; }
+[data-baseweb="menu"] li { color: white !important; }
+[data-baseweb="menu"] li:hover { background: rgba(244,121,32,0.2) !important; }
+
+/* ── BOTÕES ───────────────────────────────────────── */
 .stButton > button {
     background: #F47920 !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
     font-weight: 700 !important;
+    font-size: 13px !important;
     font-family: 'Syne', sans-serif !important;
-    transition: opacity 0.15s;
+    padding: 8px 20px !important;
+    transition: opacity 0.15s !important;
 }
-.stButton > button:hover { opacity: 0.85; }
+.stButton > button:hover { opacity: 0.85 !important; }
+.stButton > button[kind="secondary"] {
+    background: rgba(255,255,255,0.1) !important;
+}
 
-/* Selectbox */
-[data-baseweb="select"] > div {
-    background: rgba(0,0,0,0.25) !important;
+/* ── FORM ─────────────────────────────────────────── */
+[data-testid="stForm"] {
+    background: #1e6070 !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 10px !important;
-    color: white !important;
+    border-radius: 18px !important;
+    padding: 24px !important;
+}
+[data-testid="stFormSubmitButton"] > button {
+    background: #8DC63F !important;
+    width: 100% !important;
 }
 
-/* Esconder rodapé Streamlit */
-footer { visibility: hidden; }
-#MainMenu { visibility: hidden; }
-header { visibility: hidden; }
+/* ── EXPANDER ─────────────────────────────────────── */
+[data-testid="stExpander"] {
+    background: #1e6070 !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 14px !important;
+}
+[data-testid="stExpander"] summary {
+    color: white !important;
+    font-weight: 700 !important;
+}
+[data-testid="stExpander"] svg { fill: white !important; }
 
-.block-container { padding-top: 1.5rem !important; }
+/* ── FILE UPLOADER ────────────────────────────────── */
+[data-testid="stFileUploader"] {
+    background: rgba(0,0,0,0.2) !important;
+    border: 2px dashed rgba(255,255,255,0.2) !important;
+    border-radius: 14px !important;
+    padding: 20px !important;
+}
+[data-testid="stFileUploader"] label { color: white !important; }
 
-/* Cards customizados */
-.kpi-green [data-testid="stMetricValue"] { color: #8DC63F !important; }
-.kpi-yellow [data-testid="stMetricValue"] { color: #f5c842 !important; }
-.kpi-blue   [data-testid="stMetricValue"] { color: #4db8d4 !important; }
+/* ── ALERTS ───────────────────────────────────────── */
+[data-testid="stAlert"] {
+    border-radius: 12px !important;
+}
 
-/* Barra de progresso */
+/* ── SCROLLBAR ────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+/* ── HR ───────────────────────────────────────────── */
+hr { border-color: rgba(255,255,255,0.08) !important; }
+
+/* ── MARKDOWN TEXT ────────────────────────────────── */
+.stMarkdown p, .stMarkdown span, .stMarkdown div { color: white !important; }
+
+/* ── BADGES E CARDS CUSTOM ────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
 .prog-bar-bg {
     background: rgba(0,0,0,0.3);
     border-radius: 99px;
@@ -142,18 +258,6 @@ header { visibility: hidden; }
     height: 100%;
     border-radius: 99px;
     background: linear-gradient(90deg, #8DC63F, #a8e05f);
-    transition: width 0.6s ease;
-}
-
-/* Badge status */
-.badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 </style>
 """, unsafe_allow_html=True)
