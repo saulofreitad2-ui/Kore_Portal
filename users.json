@@ -7,4 +7,12 @@
     "login": "admin",
     "password": "admin123",
     "role": "admin"
+  },{
+    "id": 1,
+    "name": "SAULO",
+    "vendedor": "SAULO FREITAS",
+    "segmento": "PEC",
+    "login": "SAULO.FREITAS",
+    "password": "123",
+    "role": "admin"
   }

@@ -473,6 +473,66 @@ def render_header(subtitle):
 
 
 # ═══════════════════════════════════════════════════════════════
+# HTML TABLE HELPER — substitui st.dataframe com visual bonito
+# ═══════════════════════════════════════════════════════════════
+
+def html_table(headers, rows, max_rows=300):
+    """Renders a styled HTML table matching the app theme."""
+    if not rows:
+        st.markdown(
+            "<div style='color:rgba(255,255,255,0.5);text-align:center;padding:40px 0;font-size:14px'>Sem registros</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    th_style = (
+        "padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;"
+        "letter-spacing:0.09em;color:rgba(255,255,255,0.55);border-bottom:1px solid rgba(255,255,255,0.12);"
+        "white-space:nowrap;background:#163e50;text-align:left;"
+    )
+    td_style = (
+        "padding:10px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.05);"
+        "white-space:nowrap;color:white;vertical-align:middle;"
+    )
+    td_first = td_style + "color:#F47920;font-weight:600;"
+
+    header_html = "".join(f"<th style='{th_style}'>{h}</th>" for h in headers)
+
+    rows_html = ""
+    for row in rows[:max_rows]:
+        cells = ""
+        for j, cell in enumerate(row):
+            style = td_first if j == 0 else td_style
+            cells += f"<td style='{style}'>{cell}</td>"
+        rows_html += (
+            f"<tr style='transition:background 0.15s' "
+            f"onmouseover=\"this.style.background='rgba(255,255,255,0.04)'\" "
+            f"onmouseout=\"this.style.background='transparent'\">{cells}</tr>"
+        )
+
+    table_html = f"""
+    <div style="overflow-x:auto;border-radius:14px;border:1px solid rgba(255,255,255,0.1);
+        background:#1a5060;margin-top:4px">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>{header_html}</tr></thead>
+        <tbody>{rows_html}</tbody>
+      </table>
+      {f'<div style="padding:10px 14px;font-size:11px;color:rgba(255,255,255,0.4)">Mostrando {max_rows} de {len(rows)} registros</div>' if len(rows) > max_rows else ''}
+    </div>
+    """
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
+def badge_html(text, color):
+    return (
+        f"<span style='background:{color}22;color:{color};"
+        f"border:1px solid {color}55;border-radius:20px;"
+        f"padding:2px 9px;font-size:10px;font-weight:700;"
+        f"letter-spacing:0.04em;text-transform:uppercase'>{text}</span>"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
 # PRODUTO SEARCH
 # ═══════════════════════════════════════════════════════════════
 
@@ -516,11 +576,22 @@ def render_produto_search():
     st.markdown(f"**{len(result)}** produto{'s' if len(result) != 1 else ''} encontrado{'s' if len(result) != 1 else ''}")
 
     if not result.empty:
-        display = result[["sku","produto","familia","filial","largura","comprimento","m2_disponivel","rolos_disponivel"]].copy()
-        display.columns = ["SKU","Produto","Família","Filial","Larg.(mm)","Comp.(m)","M² Disp.","Rolos"]
-        display["M² Disp."] = display["M² Disp."].apply(lambda v: f"{v:,.2f}")
-        display["Rolos"]    = display["Rolos"].apply(lambda v: f"{v:,.0f}")
-        st.dataframe(display.head(300), use_container_width=True, hide_index=True)
+        rows_out = []
+        for _, r in result.head(300).iterrows():
+            rows_out.append([
+                badge_html(r["sku"], "#F47920"),
+                r["produto"],
+                badge_html(r["familia"], "#4db8d4") if r["familia"] else "—",
+                r["filial"],
+                f"{r['largura']:.0f} mm" if r["largura"] > 0 else "—",
+                f"{r['comprimento']:.0f} m" if r["comprimento"] > 0 else "—",
+                f"<span style='color:#8DC63F;font-weight:700'>{r['m2_disponivel']:,.2f} m²</span>",
+                f"{r['rolos_disponivel']:,.0f}",
+            ])
+        html_table(
+            ["SKU","Produto","Família","Filial","Largura","Comp.","M² Disp.","Rolos"],
+            rows_out, max_rows=300
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -712,20 +783,46 @@ def render_rep_dashboard():
         if df.empty:
             st.info("Nenhum pedido em carteira.")
         else:
-            show = df[["pedido","sku","cliente","produto","status","uf","m2_vendido","m2_atendido","m2_saldo","valor_vendido","valor_atendido","valor_a_entregar","emissao","entrega"]].copy()
-            show.columns = ["Pedido","SKU","Cliente","Produto","Status","UF","m² Vend.","m² Aten.","m² Saldo","R$ Vendido","R$ Atend.","R$ Saldo","Emissão","Entrega"]
-            for col in ["R$ Vendido","R$ Atend.","R$ Saldo"]:
-                show[col] = show[col].apply(BRL)
-            for col in ["m² Vend.","m² Aten.","m² Saldo"]:
-                show[col] = show[col].apply(lambda v: f"{v:,.2f}")
-            st.dataframe(show, use_container_width=True, hide_index=True)
+            STATUS_C = {"Aguardando Faturamento":"#f5c842","Aguardando Faturamento - Parcial":"#f5c842",
+                        "Pedido de Venda em Aberto":"#4db8d4","Aguardando Separação":"#F47920",
+                        "Financeiro Rejeitado":"#e05555","Aguardando Liberação Estoque":"#b07aff",
+                        "Aguardando Liberação Comercial":"#b07aff"}
+            rows_out = []
+            for _, p in df.iterrows():
+                sc = STATUS_C.get(p["status"], "rgba(255,255,255,0.4)")
+                rows_out.append([
+                    p["pedido"],
+                    badge_html(p["sku"], "#F47920"),
+                    p["cliente"][:28],
+                    p["produto"][:28],
+                    badge_html(p["status"], sc),
+                    p["uf"],
+                    f"{p['m2_vendido']:,.2f}",
+                    f"{p['m2_atendido']:,.2f}",
+                    f"{p['m2_saldo']:,.2f}",
+                    f"<span style='color:#F47920'>{BRL(p['valor_vendido'])}</span>",
+                    f"<span style='color:#8DC63F'>{BRL(p['valor_atendido'])}</span>",
+                    f"<span style='color:#f5c842'>{BRL(p['valor_a_entregar'])}</span>",
+                    p["emissao"], p["entrega"],
+                ])
+            html_table(["Pedido","SKU","Cliente","Produto","Status","UF",
+                        "m² Vend.","m² Aten.","m² Saldo",
+                        "R$ Vendido","R$ Atend.","R$ Saldo","Emissão","Entrega"], rows_out)
 
     with tab2:
-        show_est = est[["sku","produto","familia","filial","largura","comprimento","m2_disponivel","rolos_disponivel"]].copy()
-        show_est.columns = ["SKU","Produto","Família","Filial","Larg.(mm)","Comp.(m)","M² Disp.","Rolos"]
-        show_est["M² Disp."] = show_est["M² Disp."].apply(lambda v: f"{v:,.2f}")
-        show_est["Rolos"]    = show_est["Rolos"].apply(lambda v: f"{v:,.0f}")
-        st.dataframe(show_est, use_container_width=True, hide_index=True)
+        rows_out = []
+        for e in estoque[:300]:
+            rows_out.append([
+                badge_html(e["sku"], "#F47920"),
+                e["produto"],
+                badge_html(e["familia"], "#4db8d4") if e["familia"] else "—",
+                e["filial"],
+                f"{e['largura']:.0f} mm" if e["largura"] > 0 else "—",
+                f"{e['comprimento']:.0f} m" if e["comprimento"] > 0 else "—",
+                f"<span style='color:#8DC63F;font-weight:700'>{e['m2_disponivel']:,.2f} m²</span>",
+                f"{e['rolos_disponivel']:,.0f}",
+            ])
+        html_table(["SKU","Produto","Família","Filial","Largura","Comp.","M² Disp.","Rolos"], rows_out, max_rows=300)
 
     with tab3:
         render_produto_search()
@@ -773,34 +870,55 @@ def render_admin_dashboard():
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         st.markdown("#### Resumo por Representante")
 
-        rows = []
+        rows_out = []
         for u in reps:
             my = df[df["vendedor"] == u["vendedor"]] if not df.empty else pd.DataFrame()
-            rows.append({
-                "Representante": u["name"][:35],
-                "Itens": len(my),
-                "Carteira R$":  BRL(my["valor_vendido"].sum()    if not my.empty else 0),
-                "Atendido R$":  BRL(my["valor_atendido"].sum()   if not my.empty else 0),
-                "Saldo R$":     BRL(my["valor_a_entregar"].sum() if not my.empty else 0),
-                "m² Carteira":  f"{my['m2_vendido'].sum():,.2f}" if not my.empty else "0,00",
-                "m² Saldo":     f"{my['m2_saldo'].sum():,.2f}"   if not my.empty else "0,00",
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            cv = my["valor_vendido"].sum()    if not my.empty else 0
+            fv = my["valor_atendido"].sum()   if not my.empty else 0
+            sv = my["valor_a_entregar"].sum() if not my.empty else 0
+            cm = my["m2_vendido"].sum()       if not my.empty else 0
+            sm = my["m2_saldo"].sum()         if not my.empty else 0
+            rows_out.append([
+                u["name"][:35],
+                len(my),
+                f"<span style='color:#F47920'>{BRL(cv)}</span>",
+                f"<span style='color:#8DC63F'>{BRL(fv)}</span>",
+                f"<span style='color:#f5c842'>{BRL(sv)}</span>",
+                f"{cm:,.2f} m²",
+                f"{sm:,.2f} m²",
+            ])
+        html_table(["Representante","Itens","Carteira R$","Atendido R$","Saldo R$","m² Cart.","m² Saldo"], rows_out)
 
     # ── PERFORMANCE ──────────────────────────────────────────────
     with tab2:
         render_performance_admin()
 
-    # ── CARTEIRA GERAL ───────────────────────────────────────────
     with tab3:
         section_header("🛒 Carteira Geral", f"{len(pedidos)} itens no total")
-        df = pd.DataFrame(pedidos)
-        if not df.empty:
-            show = df[["pedido","sku","cliente","produto","vendedor","status","uf","m2_vendido","m2_saldo","valor_vendido","valor_a_entregar","emissao"]].copy()
-            show.columns = ["Pedido","SKU","Cliente","Produto","Vendedor","Status","UF","m² Vend.","m² Saldo","R$ Vendido","R$ Saldo","Emissão"]
-            for col in ["R$ Vendido","R$ Saldo"]:
-                show[col] = show[col].apply(BRL)
-            st.dataframe(show, use_container_width=True, hide_index=True)
+        if pedidos:
+            STATUS_C = {"Aguardando Faturamento":"#f5c842","Aguardando Faturamento - Parcial":"#f5c842",
+                        "Pedido de Venda em Aberto":"#4db8d4","Aguardando Separação":"#F47920",
+                        "Financeiro Rejeitado":"#e05555","Aguardando Liberação Estoque":"#b07aff",
+                        "Aguardando Liberação Comercial":"#b07aff"}
+            rows_out = []
+            for p in pedidos:
+                sc = STATUS_C.get(p["status"], "rgba(255,255,255,0.4)")
+                rows_out.append([
+                    p["pedido"],
+                    badge_html(p["sku"], "#F47920"),
+                    p["cliente"][:22],
+                    p["produto"][:22],
+                    p["vendedor"][:22],
+                    badge_html(p["status"], sc),
+                    p["uf"],
+                    f"{p['m2_vendido']:,.2f}",
+                    f"{p['m2_saldo']:,.2f}",
+                    f"<span style='color:#F47920'>{BRL(p['valor_vendido'])}</span>",
+                    f"<span style='color:#f5c842'>{BRL(p['valor_a_entregar'])}</span>",
+                    p["emissao"],
+                ])
+            html_table(["Pedido","SKU","Cliente","Produto","Vendedor","Status","UF",
+                        "m² Vend.","m² Saldo","R$ Vendido","R$ Saldo","Emissão"], rows_out, max_rows=300)
 
     # ── PRODUTOS ─────────────────────────────────────────────────
     with tab4:
